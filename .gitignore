@@ -51,4 +51,5 @@ Thumbs.db
 # Docker
 *.pid
 *.tar
-*.lock.json
+*.lock.json.coverage
+htmlcov/

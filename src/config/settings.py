@@ -102,10 +102,6 @@ class Settings(BaseSettings):
         """Directory for predictions."""
         return self.project_root / self.predictions_dir
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-
 
 # Global settings instance
 settings = Settings()
