@@ -87,7 +87,7 @@ def tune_model(
             "tree_method": "hist",
         }
 
-        with mlflow.start_run():
+        with mlflow.start_run(nested=True):
             model = XGBRegressor(**params)
             model.fit(X_train, y_train)
 
