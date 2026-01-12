@@ -1,0 +1,98 @@
+name: Housing ML CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.13'
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint and format
+        run: |
+          uv run flake8 src/ test/
+          uv run black --check src/ test/
+          uv run isort --check-only src/ test/
+
+      - name: Test
+        run: uv run pytest test/ -v --cov=src
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push images
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::8}
+          
+          # API image
+          docker build -t $ECR_REGISTRY/housing-api:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/housing-api:$IMAGE_TAG
+          
+          # Streamlit image
+          docker build -t $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG -f Dockerfile.streamlit .
+          docker push $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.API_SERVICE }} \
+            --force-new-deployment
+          
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.STREAMLIT_SERVICE }} \
+            --force-new-deployment
+
+      - name: Health check
+        run: |
+          sleep 120
+          curl -f ${{ secrets.API_URL }}/health
