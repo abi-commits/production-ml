@@ -1,8 +1,8 @@
+import json
 import logging
 import logging.config
-import json
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .settings import settings
 
@@ -21,27 +21,29 @@ def setup_logging() -> None:
         "formatters": {
             "detailed": {
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S"
+                "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "json": {
-                "format": json.dumps({
-                    "timestamp": "%(asctime)s",
-                    "level": "%(levelname)s",
-                    "logger": "%(name)s",
-                    "message": "%(message)s",
-                    "module": "%(module)s",
-                    "function": "%(funcName)s",
-                    "line": "%(lineno)d"
-                }),
-                "datefmt": "%Y-%m-%dT%H:%M:%SZ"
-            }
+                "format": json.dumps(
+                    {
+                        "timestamp": "%(asctime)s",
+                        "level": "%(levelname)s",
+                        "logger": "%(name)s",
+                        "message": "%(message)s",
+                        "module": "%(module)s",
+                        "function": "%(funcName)s",
+                        "line": "%(lineno)d",
+                    }
+                ),
+                "datefmt": "%Y-%m-%dT%H:%M:%SZ",
+            },
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "level": settings.log_level,
                 "formatter": "detailed",
-                "stream": "ext://sys.stdout"
+                "stream": "ext://sys.stdout",
             },
             "file": {
                 "class": "logging.handlers.RotatingFileHandler",
@@ -49,7 +51,7 @@ def setup_logging() -> None:
                 "formatter": "detailed",
                 "filename": str(log_dir / "app.log"),
                 "maxBytes": 10485760,  # 10MB
-                "backupCount": 5
+                "backupCount": 5,
             },
             "error_file": {
                 "class": "logging.handlers.RotatingFileHandler",
@@ -57,30 +59,30 @@ def setup_logging() -> None:
                 "formatter": "json",
                 "filename": str(log_dir / "error.log"),
                 "maxBytes": 10485760,  # 10MB
-                "backupCount": 5
-            }
+                "backupCount": 5,
+            },
         },
         "root": {
             "level": settings.log_level,
-            "handlers": ["console", "file", "error_file"]
+            "handlers": ["console", "file", "error_file"],
         },
         "loggers": {
             "uvicorn": {
                 "level": "INFO",
                 "handlers": ["console", "file"],
-                "propagate": False
+                "propagate": False,
             },
             "fastapi": {
                 "level": "INFO",
                 "handlers": ["console", "file"],
-                "propagate": False
+                "propagate": False,
             },
             "mlflow": {
                 "level": "WARNING",
                 "handlers": ["console", "file"],
-                "propagate": False
-            }
-        }
+                "propagate": False,
+            },
+        },
     }
 
     # Apply configuration
@@ -89,6 +91,7 @@ def setup_logging() -> None:
     # Set up MLflow logging
     if settings.MLFLOW_TRACKING_URI:
         import mlflow
+
         mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
 
@@ -103,4 +106,6 @@ class LoggerMixin:
     @property
     def logger(self) -> logging.Logger:
         """Return a logger instance for the class."""
-        return logging.getLogger(self.__class__.__module__ + "." + self.__class__.__name__)
+        return logging.getLogger(
+            self.__class__.__module__ + "." + self.__class__.__name__
+        )

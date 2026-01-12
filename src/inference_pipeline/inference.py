@@ -11,21 +11,24 @@ The pipeline ensures consistent preprocessing between training and inference.
 """
 
 from __future__ import annotations
+
 import argparse
 from pathlib import Path
+
 import pandas as pd
 from joblib import load
 
 # Import configuration, logging, and exceptions
 from src.config.settings import settings
 from src.utils.logging_config import get_logger
-from src.utils.exceptions import ModelNotFoundError, InvalidInputError, PredictionError
 
 logger = get_logger(__name__)
 
+from src.feature_pipeline.feature_engineering import (add_date_features,
+                                                      drop_unused_columns)
 # Import preprocessing + feature engineering helpers
-from src.feature_pipeline.preprocess import clean_and_merge, drop_duplicates, remove_outliers
-from src.feature_pipeline.feature_engineering import add_date_features, drop_unused_columns
+from src.feature_pipeline.preprocess import (clean_and_merge, drop_duplicates,
+                                             remove_outliers)
 
 # ----------------------------
 # Default paths
@@ -40,7 +43,9 @@ DEFAULT_OUTPUT = settings.predictions_path / "predictions.csv"
 # Load training feature columns (strict schema from training dataset)
 if TRAIN_FE_PATH.exists():
     _train_cols = pd.read_csv(TRAIN_FE_PATH, nrows=1)
-    TRAIN_FEATURE_COLUMNS = [c for c in _train_cols.columns if c != "price"]  # excluding price column
+    TRAIN_FEATURE_COLUMNS = [
+        c for c in _train_cols.columns if c != "price"
+    ]  # excluding price column
 else:
     TRAIN_FEATURE_COLUMNS = None
 
@@ -110,7 +115,10 @@ def predict(
     # Step 5: Align columns with training schema
     if TRAIN_FEATURE_COLUMNS is not None:
         df = df.reindex(columns=TRAIN_FEATURE_COLUMNS, fill_value=0)
-        logger.info("Features aligned with training schema", num_features=len(TRAIN_FEATURE_COLUMNS))
+        logger.info(
+            "Features aligned with training schema",
+            num_features=len(TRAIN_FEATURE_COLUMNS),
+        )
 
     # Step 6: Load model & predict
     try:
@@ -139,12 +147,36 @@ def predict(
 # ----------------------------
 # Allows running inference directly from terminal.
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run inference on new housing data (raw).")
-    parser.add_argument("--input", type=str, required=True, help="Path to input RAW CSV file")
-    parser.add_argument("--output", type=str, default=str(DEFAULT_OUTPUT), help="Path to save predictions CSV")
-    parser.add_argument("--model", type=str, default=str(DEFAULT_MODEL), help="Path to trained model file")
-    parser.add_argument("--freq_encoder", type=str, default=str(DEFAULT_FREQ_ENCODER), help="Path to frequency encoder pickle")
-    parser.add_argument("--target_encoder", type=str, default=str(DEFAULT_TARGET_ENCODER), help="Path to target encoder pickle")
+    parser = argparse.ArgumentParser(
+        description="Run inference on new housing data (raw)."
+    )
+    parser.add_argument(
+        "--input", type=str, required=True, help="Path to input RAW CSV file"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=str(DEFAULT_OUTPUT),
+        help="Path to save predictions CSV",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=str(DEFAULT_MODEL),
+        help="Path to trained model file",
+    )
+    parser.add_argument(
+        "--freq_encoder",
+        type=str,
+        default=str(DEFAULT_FREQ_ENCODER),
+        help="Path to frequency encoder pickle",
+    )
+    parser.add_argument(
+        "--target_encoder",
+        type=str,
+        default=str(DEFAULT_TARGET_ENCODER),
+        help="Path to target encoder pickle",
+    )
 
     args = parser.parse_args()
 

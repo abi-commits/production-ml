@@ -8,7 +8,9 @@ Batch runner for monthly predictions.
 """
 
 from pathlib import Path
+
 import pandas as pd
+
 from src.inference_pipeline.inference import predict
 
 # -------------------
@@ -29,7 +31,7 @@ def run_monthly_predictions():
     years = pd.DatetimeIndex(df["date"]).year
     months = pd.DatetimeIndex(df["date"]).month
     grouped = df.groupby([years, months])
-    
+
     all_outputs = []
     for (year, month), group in grouped:
         print(f"📅 Running predictions for {year}-{month:02d} ({len(group)} rows)")

@@ -12,6 +12,7 @@ Features:
 """
 
 from pathlib import Path
+
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,9 +36,15 @@ class Settings(BaseSettings):
 
     # Model Configuration
     model_name: str = Field(default="xgb_best_model.pkl", alias="MODEL_NAME")
-    freq_encoder_name: str = Field(default="freq_encoder.pkl", alias="FREQ_ENCODER_NAME")
-    target_encoder_name: str = Field(default="target_encoder.pkl", alias="TARGET_ENCODER_NAME")
-    train_features_file: str = Field(default="feature_engineered_train.csv", alias="TRAIN_FEATURES_FILE")
+    freq_encoder_name: str = Field(
+        default="freq_encoder.pkl", alias="FREQ_ENCODER_NAME"
+    )
+    target_encoder_name: str = Field(
+        default="target_encoder.pkl", alias="TARGET_ENCODER_NAME"
+    )
+    train_features_file: str = Field(
+        default="feature_engineered_train.csv", alias="TRAIN_FEATURES_FILE"
+    )
 
     # Paths
     project_root: Path = Field(default=Path(__file__).resolve().parents[2])
@@ -46,8 +53,12 @@ class Settings(BaseSettings):
     predictions_dir: str = Field(default="data/predictions")
 
     # MLflow Configuration
-    mlflow_tracking_uri: str = Field(default="http://localhost:5000", alias="MLFLOW_TRACKING_URI")
-    mlflow_experiment_name: str = Field(default="housing_regression", alias="MLFLOW_EXPERIMENT_NAME")
+    mlflow_tracking_uri: str = Field(
+        default="http://localhost:5000", alias="MLFLOW_TRACKING_URI"
+    )
+    mlflow_experiment_name: str = Field(
+        default="housing_regression", alias="MLFLOW_EXPERIMENT_NAME"
+    )
 
     # Logging
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
@@ -81,7 +92,9 @@ class Settings(BaseSettings):
     @property
     def train_features_path(self) -> Path:
         """Full path to the training features file."""
-        return self.project_root / self.data_dir / "processed" / self.train_features_file
+        return (
+            self.project_root / self.data_dir / "processed" / self.train_features_file
+        )
 
     @computed_field
     @property

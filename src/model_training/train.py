@@ -7,6 +7,7 @@ Train a baseline XGBoost model.
 """
 
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -21,7 +22,9 @@ DEFAULT_EVAL = Path("data/processed/feature_engineered_eval.csv")
 DEFAULT_OUT = Path("models/xgb_model.pkl")
 
 
-def _maybe_sample(df: pd.DataFrame, sample_frac: Optional[float], random_state: int) -> pd.DataFrame:
+def _maybe_sample(
+    df: pd.DataFrame, sample_frac: Optional[float], random_state: int
+) -> pd.DataFrame:
     if sample_frac is None:
         return df
     sample_frac = float(sample_frac)

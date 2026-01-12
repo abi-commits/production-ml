@@ -7,25 +7,27 @@ Hyperparameter tuning with Optuna + MLflow.
 """
 
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+import mlflow
 import numpy as np
 import optuna
 import pandas as pd
 from joblib import dump
+from mlflow.xgboost import log_model
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
-
-import mlflow
-from mlflow.xgboost import log_model
 
 DEFAULT_TRAIN = Path("data/processed/feature_engineered_train.csv")
 DEFAULT_EVAL = Path("data/processed/feature_engineered_eval.csv")
 DEFAULT_OUT = Path("models/xgb_best_model.pkl")
 
 
-def _maybe_sample(df: pd.DataFrame, sample_frac: Optional[float], random_state: int) -> pd.DataFrame:
+def _maybe_sample(
+    df: pd.DataFrame, sample_frac: Optional[float], random_state: int
+) -> pd.DataFrame:
     if sample_frac is None:
         return df
     sample_frac = float(sample_frac)
@@ -66,7 +68,9 @@ def tune_model(
         mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
 
-    X_train, y_train, X_eval, y_eval = _load_data(train_path, eval_path, sample_frac, random_state)
+    X_train, y_train, X_eval, y_eval = _load_data(
+        train_path, eval_path, sample_frac, random_state
+    )
 
     def objective(trial: optuna.Trial):
         params = {
@@ -105,7 +109,14 @@ def tune_model(
     print("✅ Best params from Optuna:", best_params)
 
     # Retrain best model
-    best_model = XGBRegressor(**{**best_params, "random_state": random_state, "n_jobs": -1, "tree_method": "hist"})
+    best_model = XGBRegressor(
+        **{
+            **best_params,
+            "random_state": random_state,
+            "n_jobs": -1,
+            "tree_method": "hist",
+        }
+    )
     best_model.fit(X_train, y_train)
     y_pred = best_model.predict(X_eval)
     best_metrics = {
@@ -125,7 +136,6 @@ def tune_model(
     with mlflow.start_run(run_name="best_xgb_model"):
         mlflow.log_params(best_params)
         mlflow.log_metrics(best_metrics)
-        mlflow.xgboost.log_model(best_model, "model") # type: ignore[attr-defined]
 
     return best_params, best_metrics
 

@@ -1,14 +1,16 @@
-import pandas as pd
-import pytest
 from pathlib import Path
 
+import pandas as pd
+
+from src.feature_pipeline.feature_engineering import (add_date_features,
+                                                      drop_unused_columns,
+                                                      frequency_encode,
+                                                      run_feature_engineering,
+                                                      target_encode)
 from src.feature_pipeline.load import load_and_split_data
-from src.feature_pipeline.preprocess import (
-    clean_and_merge, drop_duplicates, remove_outliers, preprocess_split
-)
-from src.feature_pipeline.feature_engineering import (
-    add_date_features, frequency_encode, target_encode, drop_unused_columns, run_feature_engineering
-)
+from src.feature_pipeline.preprocess import (clean_and_merge, drop_duplicates,
+                                             preprocess_split, remove_outliers)
+
 
 # =========================
 # load.py – unit test
@@ -16,15 +18,19 @@ from src.feature_pipeline.feature_engineering import (
 # Confirms time-based splitting works.
 def test_load_and_split_data_creates_splits(tmp_path):
     dummy_path = tmp_path / "raw.csv"
-    df = pd.DataFrame({
-        "date": pd.date_range("2018-01-01", periods=6, freq="365D"),
-        "price": [100, 200, 300, 400, 500, 600],
-        "zipcode": [1000, 2000, 1000, 2000, 3000, 4000],
-        "city_full": ["A", "B", "A", "B", "C", "D"],
-    })
+    df = pd.DataFrame(
+        {
+            "date": pd.date_range("2018-01-01", periods=6, freq="365D"),
+            "price": [100, 200, 300, 400, 500, 600],
+            "zipcode": [1000, 2000, 1000, 2000, 3000, 4000],
+            "city_full": ["A", "B", "A", "B", "C", "D"],
+        }
+    )
     df.to_csv(dummy_path, index=False)
 
-    train, eval, holdout = load_and_split_data(raw_path=str(dummy_path), output_dir=tmp_path)
+    train, eval, holdout = load_and_split_data(
+        raw_path=str(dummy_path), output_dir=tmp_path
+    )
 
     assert not train.empty and not eval.empty and not holdout.empty
     assert train["date"].max() < pd.to_datetime("2020-01-01")
@@ -46,11 +52,13 @@ def test_remove_outliers_drops_high_prices():
 
 
 def test_drop_duplicates_removes_dupes():
-    df = pd.DataFrame({
-        "date": ["2020-01-01", "2020-01-01"],
-        "year": [2020, 2020],
-        "median_list_price": [100, 100]
-    })
+    df = pd.DataFrame(
+        {
+            "date": ["2020-01-01", "2020-01-01"],
+            "year": [2020, 2020],
+            "median_list_price": [100, 100],
+        }
+    )
     cleaned = drop_duplicates(df)
     assert cleaned.shape[0] == 0
     print("✅ Duplicate removal test passed")
@@ -70,7 +78,11 @@ def test_clean_and_merge_skips_when_city_missing():
 def test_add_date_features_extracts_parts():
     df = pd.DataFrame({"date": ["2020-01-15"]})
     df = add_date_features(df)
-    assert df.loc[0, "year"] == 2020 and df.loc[0, "month"] == 1 and df.loc[0, "quarter"] == 1
+    assert (
+        df.loc[0, "year"] == 2020
+        and df.loc[0, "month"] == 1
+        and df.loc[0, "quarter"] == 1
+    )
     print("✅ Date feature extraction test passed")
 
 
@@ -95,10 +107,15 @@ def test_target_encode_applies_mapping():
 
 
 def test_drop_unused_columns_removes_leakage():
-    tr = pd.DataFrame({
-        "date": ["2020-01-01"], "city_full": ["A"], "zipcode": [1000],
-        "median_sale_price": [200], "price": [300]
-    })
+    tr = pd.DataFrame(
+        {
+            "date": ["2020-01-01"],
+            "city_full": ["A"],
+            "zipcode": [1000],
+            "median_sale_price": [200],
+            "price": [300],
+        }
+    )
     ev = tr.copy()
     tr2, ev2 = drop_unused_columns(tr, ev)
     for col in ["date", "city_full", "zipcode", "median_sale_price"]:
@@ -112,32 +129,39 @@ def test_drop_unused_columns_removes_leakage():
 # =========================
 # Confirms the whole feature pipeline works together.
 def test_full_pipeline_integration(tmp_path):
-    raw = pd.DataFrame({
-        "date": pd.date_range("2018-01-01", periods=6, freq="365D"),
-        "price": [100, 200, 300, 400, 500, 600],
-        "zipcode": [1000, 2000, 1000, 2000, 1000, 2000],
-        "city_full": ["A", "B", "A", "B", "A", "B"],
-        "median_list_price": [150_000]*6
-    })
+    raw = pd.DataFrame(
+        {
+            "date": pd.date_range("2018-01-01", periods=6, freq="365D"),
+            "price": [100, 200, 300, 400, 500, 600],
+            "zipcode": [1000, 2000, 1000, 2000, 1000, 2000],
+            "city_full": ["A", "B", "A", "B", "A", "B"],
+            "median_list_price": [150_000] * 6,
+        }
+    )
     raw_path = tmp_path / "raw.csv"
     raw.to_csv(raw_path, index=False)
 
-    train, eval, holdout = load_and_split_data(raw_path=str(raw_path), output_dir=tmp_path)
+    train, eval, holdout = load_and_split_data(
+        raw_path=str(raw_path), output_dir=tmp_path
+    )
 
     processed_dir = tmp_path / "processed"
     processed_dir.mkdir(exist_ok=True)
     train.to_csv(tmp_path / "train.csv", index=False)
     eval.to_csv(tmp_path / "eval.csv", index=False)
 
-    preprocess_split("train", raw_dir=tmp_path, processed_dir=processed_dir, metros_path=None)
-    preprocess_split("eval", raw_dir=tmp_path, processed_dir=processed_dir, metros_path=None)
+    preprocess_split(
+        "train", raw_dir=tmp_path, processed_dir=processed_dir, metros_path=None
+    )
+    preprocess_split(
+        "eval", raw_dir=tmp_path, processed_dir=processed_dir, metros_path=None
+    )
 
     out_train, out_eval, out_holdout, freq_map, te = run_feature_engineering(
         in_train_path=processed_dir / "cleaning_train.csv",
         in_eval_path=processed_dir / "cleaning_eval.csv",
         output_dir=processed_dir,
     )
-
 
     assert {"year", "zipcode_freq", "city_full_encoded"}.issubset(out_train.columns)
     assert {"year", "zipcode_freq", "city_full_encoded"}.issubset(out_eval.columns)

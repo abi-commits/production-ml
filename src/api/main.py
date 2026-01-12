@@ -1,5 +1,3 @@
-
-
 """
 Housing ML API Service
 
@@ -11,17 +9,18 @@ A FastAPI-based REST API for housing price prediction with enterprise-grade feat
 - Health monitoring
 """
 
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import APIKeyHeader
+import os
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+import boto3
 import pandas as pd
-import boto3, os
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import APIKeyHeader
 
 # Import configuration, logging, and exceptions
 from src.config.settings import settings
 from src.utils.logging_config import configure_logging, get_logger
-from src.utils.exceptions import ModelNotFoundError, InvalidInputError, PredictionError
 
 # Configure logging
 configure_logging()
@@ -58,7 +57,8 @@ from src.inference_pipeline.inference import predict
 # ----------------------------
 s3 = boto3.client("s3", region_name=settings.aws_region)
 
-# Ensures your app always has the latest model/data locally, 
+
+# Ensures your app always has the latest model/data locally,
 # but avoids re-downloading every time it starts.
 def load_from_s3(key, local_path):
     """Download from S3 if not already cached locally."""
@@ -69,12 +69,19 @@ def load_from_s3(key, local_path):
         s3.download_file(settings.s3_bucket, key, str(local_path))
     return str(local_path)
 
+
 # ----------------------------
 # Paths
 # ----------------------------
 # Downloads model + training features from S3 if not cached.
-MODEL_PATH = Path(load_from_s3(f"models/{settings.model_name}", str(settings.model_path)))
-TRAIN_FE_PATH = Path(load_from_s3(f"processed/{settings.train_features_file}", str(settings.train_features_path)))
+MODEL_PATH = Path(
+    load_from_s3(f"models/{settings.model_name}", str(settings.model_path))
+)
+TRAIN_FE_PATH = Path(
+    load_from_s3(
+        f"processed/{settings.train_features_file}", str(settings.train_features_path)
+    )
+)
 
 # Load expected training features for alignment
 if TRAIN_FE_PATH.exists():
@@ -90,7 +97,7 @@ app = FastAPI(
     description="Enterprise-grade ML API for housing price prediction",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 
@@ -116,7 +123,7 @@ def health() -> Dict[str, Any]:
     status: Dict[str, Any] = {
         "status": "healthy",
         "model_path": str(MODEL_PATH),
-        "service": "housing-api"
+        "service": "housing-api",
     }
 
     if not MODEL_PATH.exists():
@@ -130,8 +137,11 @@ def health() -> Dict[str, Any]:
 
     return status
 
+
 @app.post("/predict")
-def predict_batch(data: List[Dict[str, Any]], api_key: str = Depends(get_api_key)) -> Dict[str, Any]:
+def predict_batch(
+    data: List[Dict[str, Any]], api_key: str = Depends(get_api_key)
+) -> Dict[str, Any]:
     """
     Core ML prediction endpoint for housing price estimation.
 
@@ -149,7 +159,9 @@ def predict_batch(data: List[Dict[str, Any]], api_key: str = Depends(get_api_key
 
     if not MODEL_PATH.exists():
         logger.error("Model not found", model_path=str(MODEL_PATH))
-        raise HTTPException(status_code=500, detail=f"Model not found at {str(MODEL_PATH)}")
+        raise HTTPException(
+            status_code=500, detail=f"Model not found at {str(MODEL_PATH)}"
+        )
 
     df = pd.DataFrame(data)
     if df.empty:
@@ -161,7 +173,7 @@ def predict_batch(data: List[Dict[str, Any]], api_key: str = Depends(get_api_key
             df,
             model_path=settings.model_path,
             freq_encoder_path=settings.freq_encoder_path,
-            target_encoder_path=settings.target_encoder_path
+            target_encoder_path=settings.target_encoder_path,
         )
 
         resp = {"predictions": preds_df["predicted_price"].astype(float).tolist()}
@@ -175,8 +187,10 @@ def predict_batch(data: List[Dict[str, Any]], api_key: str = Depends(get_api_key
         logger.error("Prediction failed", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Prediction failed")
 
+
 # Batch runner
 from src.batch.run_batch import run_monthly_predictions
+
 
 # Trigger a monthly batch job via API.
 @app.post("/run_batch")
@@ -185,8 +199,9 @@ def run_batch():
     return {
         "status": "success",
         "rows_predicted": int(len(preds)),
-        "output_dir": "data/predictions/"
+        "output_dir": "data/predictions/",
     }
+
 
 # Returns a preview of the most recent batch predictions.
 @app.get("/latest_predictions")
@@ -201,7 +216,7 @@ def latest_predictions(limit: int = 5):
     return {
         "file": latest_file.name,
         "rows": int(len(df)),
-        "preview": df.head(limit).to_dict(orient="records")
+        "preview": df.head(limit).to_dict(orient="records"),
     }
 
 

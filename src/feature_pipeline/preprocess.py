@@ -8,6 +8,7 @@ Preprocessing: city normalization + (optional) lat/lng merge, duplicate drop, ou
 
 import re
 from pathlib import Path
+
 import pandas as pd
 
 RAW_DIR = Path("data/raw")
@@ -32,12 +33,14 @@ def normalize_city(s: str) -> str:
     if pd.isna(s):
         return s
     s = str(s).strip().lower()
-    s = re.sub(r"[–—-]", "-", s)          # unify dashes
-    s = re.sub(r"\s+", " ", s)            # collapse spaces
+    s = re.sub(r"[–—-]", "-", s)  # unify dashes
+    s = re.sub(r"\s+", " ", s)  # collapse spaces
     return s
 
 
-def clean_and_merge(df: pd.DataFrame, metros_path: str | None = "data/raw/usmetros.csv") -> pd.DataFrame:
+def clean_and_merge(
+    df: pd.DataFrame, metros_path: str | None = "data/raw/usmetros.csv"
+) -> pd.DataFrame:
     """
     Normalize city names, optionally merge lat/lng from metros dataset.
     If `city_full` column or `metros_path` is missing, skip gracefully.
@@ -50,7 +53,9 @@ def clean_and_merge(df: pd.DataFrame, metros_path: str | None = "data/raw/usmetr
     # Normalize city_full
     df["city_full"] = df["city_full"].apply(normalize_city)
     # Apply mapping
-    norm_mapping = {normalize_city(k): normalize_city(v) for k, v in CITY_MAPPING.items()}
+    norm_mapping = {
+        normalize_city(k): normalize_city(v) for k, v in CITY_MAPPING.items()
+    }
     df["city_full"] = df["city_full"].replace(norm_mapping)
 
     # If lat/lng already present, skip merge
@@ -65,13 +70,19 @@ def clean_and_merge(df: pd.DataFrame, metros_path: str | None = "data/raw/usmetr
 
     # Merge lat/lng
     metros = pd.read_csv(metros_path)
-    if "metro_full" not in metros.columns or not {"lat", "lng"}.issubset(metros.columns):
+    if "metro_full" not in metros.columns or not {"lat", "lng"}.issubset(
+        metros.columns
+    ):
         print("⚠️ Skipping lat/lng merge: metros file missing required columns.")
         return df
 
     metros["metro_full"] = metros["metro_full"].apply(normalize_city)
-    df = df.merge(metros[["metro_full", "lat", "lng"]],
-                  how="left", left_on="city_full", right_on="metro_full")
+    df = df.merge(
+        metros[["metro_full", "lat", "lng"]],
+        how="left",
+        left_on="city_full",
+        right_on="metro_full",
+    )
     df.drop(columns=["metro_full"], inplace=True, errors="ignore")
 
     missing = df[df["lat"].isnull()]["city_full"].unique()
@@ -80,7 +91,6 @@ def clean_and_merge(df: pd.DataFrame, metros_path: str | None = "data/raw/usmetr
     else:
         print("✅ All cities matched with metros dataset.")
     return df
-
 
 
 def drop_duplicates(df: pd.DataFrame) -> pd.DataFrame:
@@ -134,7 +144,9 @@ def run_preprocess(
     metros_path: str | None = "data/raw/usmetros.csv",
 ):
     for s in splits:
-        preprocess_split(s, raw_dir=raw_dir, processed_dir=processed_dir, metros_path=metros_path)
+        preprocess_split(
+            s, raw_dir=raw_dir, processed_dir=processed_dir, metros_path=metros_path
+        )
 
 
 if __name__ == "__main__":

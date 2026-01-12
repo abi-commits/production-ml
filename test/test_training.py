@@ -1,15 +1,16 @@
 import math
 from pathlib import Path
+
 from joblib import load
 
-from src.model_training.train import train_model
 from src.model_training.eval import evaluate_model
+from src.model_training.train import train_model
 from src.model_training.tune import tune_model
-
 
 # Assumes you already ran feature engineering so the processed CSVs exist.
 TRAIN_PATH = Path("data/processed/feature_engineered_train.csv")
 EVAL_PATH = Path("data/processed/feature_engineered_eval.csv")
+
 
 # Ensuring we have the same keys in metrics dict.
 def _assert_metrics(m):
@@ -34,6 +35,7 @@ def test_train_creates_model_and_metrics(tmp_path):
     assert model is not None
     print("✅ train_model test passed")
 
+
 # EVAL: Trains a model first, then evaluates it on eval set. Confirms evaluation metrics are valid.
 def test_eval_works_with_saved_model(tmp_path):
     # train quick model
@@ -45,9 +47,12 @@ def test_eval_works_with_saved_model(tmp_path):
         model_params={"n_estimators": 20},
         sample_frac=0.02,
     )
-    metrics = evaluate_model(model_path=model_path, eval_path=EVAL_PATH, sample_frac=0.02)
+    metrics = evaluate_model(
+        model_path=model_path, eval_path=EVAL_PATH, sample_frac=0.02
+    )
     _assert_metrics(metrics)
     print("✅ evaluate_model test passed")
+
 
 # TUNE: Runs tune_model with only 2 trials (fast for CI).
 def test_tune_saves_best_model(tmp_path):

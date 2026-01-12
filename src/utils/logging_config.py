@@ -38,9 +38,7 @@ def configure_logging() -> None:
         shared_processors.append(structlog.processors.JSONRenderer())
     else:
         # Human-readable logging for development
-        shared_processors.append(
-            structlog.dev.ConsoleRenderer(colors=True)
-        )
+        shared_processors.append(structlog.dev.ConsoleRenderer(colors=True))
 
     structlog.configure(
         processors=shared_processors,
