@@ -8,7 +8,6 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
   AWS_REGION: ap-south-1   # hardcode is fine for OIDC
 
 jobs:
@@ -56,6 +55,11 @@ jobs:
           role-to-assume: arn:aws:iam::253490748872:role/github-actions-housing-deploy
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Set ECR registry
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -68,6 +72,7 @@ jobs:
 
           docker build -t $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG -f Dockerfile.streamlit .
           docker push $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG
+
 
   deploy:
     runs-on: ubuntu-latest
