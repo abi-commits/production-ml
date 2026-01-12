@@ -52,7 +52,8 @@ def validate_data(path: str):
         "median_dom", min_value=0, max_value=10_000
     )
 
-    # Allow wider range for sale-to-list ratio (0 for missing data, up to 2.0 for competitive markets)
+    # Allow wider range for sale-to-list ratio
+    # (0 for missing data, up to 2.0 for competitive markets)
     validator.expect_column_values_to_be_between(
         "avg_sale_to_list", min_value=0, max_value=2.0
     )
@@ -94,7 +95,8 @@ def validate_data(path: str):
                     print(f"    Observed: {result['observed_value']}")
                 if "element_count" in result and "unexpected_count" in result:
                     print(
-                        f"    Unexpected count: {result['unexpected_count']}/{result['element_count']}"
+                        f"    Unexpected count: "
+                        f"{result['unexpected_count']}/{result['element_count']}"
                     )
         sys.exit(1)
     else:

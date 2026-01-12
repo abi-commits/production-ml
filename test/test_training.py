@@ -36,7 +36,8 @@ def test_train_creates_model_and_metrics(tmp_path):
     print("✅ train_model test passed")
 
 
-# EVAL: Trains a model first, then evaluates it on eval set. Confirms evaluation metrics are valid.
+# EVAL: Trains a model first, then evaluates it on eval set.
+# Confirms evaluation metrics are valid.
 def test_eval_works_with_saved_model(tmp_path):
     # train quick model
     model_path = tmp_path / "xgb_model.pkl"

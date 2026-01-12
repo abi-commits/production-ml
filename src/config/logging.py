@@ -2,7 +2,6 @@ import json
 import logging
 import logging.config
 from pathlib import Path
-from typing import Any, Dict
 
 from .settings import settings
 

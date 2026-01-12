@@ -11,8 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 from category_encoders import TargetEncoder
-from joblib import \
-    dump  # joblib.dump saves encoders/mappings to disk (important for reusing at inference).
+from joblib import dump  # joblib.dump saves encoders/mappings to disk
 
 PROCESSED_DIR = Path("data/processed")
 MODELS_DIR = Path("models")

@@ -1,5 +1,6 @@
 """
-Preprocessing: city normalization + (optional) lat/lng merge, duplicate drop, outlier removal.
+Preprocessing: city normalization + (optional) lat/lng merge, duplicate drop,
+outlier removal.
 
 - Production defaults read from data/raw/ and write to data/processed/
 - Tests can override `raw_dir`, `processed_dir`, and pass `metros_path=None`

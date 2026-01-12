@@ -19,7 +19,9 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import APIKeyHeader
 
 # Import configuration, logging, and exceptions
+from src.batch.run_batch import run_monthly_predictions
 from src.config.settings import settings
+from src.inference_pipeline.inference import predict
 from src.utils.logging_config import configure_logging, get_logger
 
 # Configure logging
@@ -48,9 +50,6 @@ def get_api_key(api_key: str = Depends(api_key_header)) -> str:
         raise HTTPException(status_code=401, detail="Invalid API Key")
     return api_key
 
-
-# Import inference pipeline
-from src.inference_pipeline.inference import predict
 
 # ----------------------------
 # Config
@@ -186,10 +185,6 @@ def predict_batch(
     except Exception as e:
         logger.error("Prediction failed", error=str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Prediction failed")
-
-
-# Batch runner
-from src.batch.run_batch import run_monthly_predictions
 
 
 # Trigger a monthly batch job via API.

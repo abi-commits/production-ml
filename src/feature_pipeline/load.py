@@ -16,7 +16,7 @@ def load_and_split_data(
     raw_path: str = "data/raw/untouched_raw_original.csv",
     output_dir: Path | str = DATA_DIR,
 ):
-    """Load raw dataset, split into train/eval/holdout by date, and save to output_dir."""
+    """split into train/eval/holdout"""
     df = pd.read_csv(raw_path)
 
     # Ensure datetime + sort
@@ -41,7 +41,9 @@ def load_and_split_data(
 
     print(f"✅ Data split completed (saved to {outdir}).")
     print(
-        f"   Train: {train_df.shape}, Eval: {eval_df.shape}, Holdout: {holdout_df.shape}"
+        f"   Train: {train_df.shape}, "
+        f"Eval: {eval_df.shape}, "
+        f"Holdout: {holdout_df.shape}"
     )
 
     return train_df, eval_df, holdout_df
