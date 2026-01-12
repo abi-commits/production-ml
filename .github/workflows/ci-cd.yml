@@ -28,12 +28,13 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
-
+      
       - name: Lint and format
         run: |
-          uv run flake8 src/ test/
-          uv run black --check src/ test/
-          uv run isort --check-only src/ test/
+         uv run isort --check-only src/ test/
+         uv run black --check src/ test/
+         uv run flake8 src/ test/
+
 
       - name: Test
         run: uv run pytest test/ -v --cov=src
