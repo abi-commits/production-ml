@@ -46,8 +46,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -59,6 +58,14 @@ jobs:
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           echo "ECR_REGISTRY=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Ensure ECR repositories exist
+        run: |
+          aws ecr describe-repositories --repository-names housing-api \
+            || aws ecr create-repository --repository-name housing-api
+
+          aws ecr describe-repositories --repository-names housing-streamlit \
+            || aws ecr create-repository --repository-name housing-streamlit
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -72,6 +79,7 @@ jobs:
 
           docker build -t $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG -f Dockerfile.streamlit .
           docker push $ECR_REGISTRY/housing-streamlit:$IMAGE_TAG
+
 
 
   deploy:
