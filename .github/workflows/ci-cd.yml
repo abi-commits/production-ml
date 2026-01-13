@@ -98,19 +98,18 @@ jobs:
           role-to-assume: arn:aws:iam::253490748872:role/github-actions-housing-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Deploy to ECS
+       # Deploy to ECS - API
+      - name: Deploy housing-api-service
         run: |
           aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service ${{ secrets.API_SERVICE }} \
+            --cluster housing-api-cluster-ecs \
+            --service housing-api-service \
             --force-new-deployment
 
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service ${{ secrets.STREAMLIT_SERVICE }} \
-            --force-new-deployment
-
-      - name: Health check
+      # Deploy to ECS - Streamlit
+      - name: Deploy housing-streamlit-service
         run: |
-          sleep 120
-          curl -f ${{ secrets.API_URL }}/health
+          aws ecs update-service \
+            --cluster housing-api-cluster-ecs \
+            --service housing-streamlit-service \
+            --force-new-deployment
