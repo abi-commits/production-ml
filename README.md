@@ -1,24 +1,33 @@
-# Housing ML - Enterprise-Grade MLOps Project
+# Production ML – Housing Price Prediction
 
 A production-ready machine learning system for housing price prediction with enterprise-grade features including centralized configuration, structured logging, authentication, and comprehensive error handling.
 
 ## Features
 
-- **ML Pipeline**: Complete ML pipeline with data preprocessing, feature engineering, model training, and inference
-- **API Service**: FastAPI-based REST API for real-time predictions
-- **Dashboard**: Streamlit-based web dashboard for model interaction
-- **Configuration Management**: Pydantic-based centralized configuration with environment variable support
-- **Logging**: Structured logging with JSON output for production
-- **Authentication**: API key-based authentication for secure access
-- **Error Handling**: Comprehensive exception handling with custom error types
-- **CI/CD**: GitHub Actions for automated testing and deployment to AWS ECS
-- **Containerization**: Multi-service Docker setup for API and dashboard
-- **Code Quality**: Linting, formatting, and testing tools
+- ML
+  - Data preprocessing and feature engineering
+  - Model training and evaluation
+  - Batch and real-time inference
+- Services
+  - FastAPI REST API for predictions
+  - Streamlit dashboard for interaction
+- Operations
+  - Centralized configuration (Pydantic with environment variable support)
+  - CI/CD via GitHub Actions to AWS ECS
+  - Containerization with Docker and docker-compose
+- Observability & Reliability
+  - Structured JSON logging
+  - Health checks (liveness and readiness)
+  - Robust error handling with custom exceptions
+- Security & Quality
+  - API key authentication
+  - Input validation and sanitization
+  - Formatting, linting, and testing tools
 
 ## Project Structure
 
 ```
-housing-ml/
+production-ml/
 ├── src/
 │   ├── api/                 # FastAPI application
 │   ├── batch/               # Batch processing jobs
@@ -43,7 +52,7 @@ housing-ml/
 
 ### Prerequisites
 
-- Python 3.13+
+- Python 3.13+ (see alternative setup below for Python 3.12)
 - uv (Python package manager)
 - Docker (for containerized deployment)
 - AWS CLI (for cloud deployment)
@@ -51,53 +60,59 @@ housing-ml/
 ### Installation
 
 1. Clone the repository:
-```bash
-git clone <repository-url>
-cd housing-ml
-```
+   ```bash
+   git clone https://github.com/abi-commits/production-ml.git
+   cd production-ml
+   ```
 
 2. Install dependencies:
-```bash
-make install
-```
+   ```bash
+   make install
+   ```
 
 3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. Alternative install (without uv / Python 3.12):
+   ```bash
+   python3.12 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
 ### Development
 
 1. Run both services locally with docker-compose:
-```bash
-make run-compose
-```
+   ```bash
+   make run-compose
+   ```
 
 2. Or run the API locally:
-```bash
-make run
-```
+   ```bash
+   make run
+   ```
 
 3. Run the dashboard locally:
-```bash
-make run-dashboard
-```
+   ```bash
+   make run-dashboard
+   ```
 
-2. Run tests:
-```bash
-make test
-```
+4. Run tests:
+   ```bash
+   make test
+   ```
 
-3. Format code:
-```bash
-make format
-```
+5. Format code:
+   ```bash
+   make format
+   ```
 
-4. Lint code:
-```bash
-make lint
-```
+6. Lint code:
+   ```bash
+   make lint
+   ```
 
 ## API Usage
 
@@ -105,31 +120,19 @@ make lint
 
 All API endpoints require an API key in the `X-API-Key` header.
 
+- Local: set `API_KEY` in your `.env` file
+- Production: provide `API_KEY` via ECS task definition secret, Parameter Store, or Secrets Manager
+- Rotation: update the secret source (e.g., Parameter Store/Secrets Manager) and redeploy; the service reads the key from environment at startup
+
 ### Endpoints
 
-- `GET /` - Health check
-- `GET /health` - Detailed health status
+- `GET /` - Health check (liveness)
+- `GET /health` - Detailed health status (readiness)
 - `POST /predict` - Real-time predictions
 - `POST /run_batch` - Trigger batch predictions
 - `GET /latest_predictions` - Get latest batch predictions
 
-### Example Prediction Request
 
-```bash
-curl -X POST "http://localhost:8000/predict" \
-     -H "X-API-Key: your-api-key" \
-     -H "Content-Type: application/json" \
-     -d '[
-       {
-         "date": "2023-01-01",
-         "price": 500000,
-         "bedrooms": 3,
-         "bathrooms": 2,
-         "sqft_living": 2000,
-         "zipcode": "98101"
-       }
-     ]'
-```
 
 ## Configuration
 
@@ -138,8 +141,19 @@ The application uses Pydantic settings for configuration. Key settings include:
 - `ENVIRONMENT`: development/production
 - `AWS_REGION`: AWS region for S3 and ECS
 - `S3_BUCKET`: S3 bucket for model artifacts
-- `API_KEY`: API key for authentication
+- `MODEL_S3_KEY`: S3 key/path for the model artifact (e.g., `models/latest/model.pkl`)
 - `LOG_LEVEL`: Logging level (DEBUG/INFO/WARNING/ERROR)
+
+## Model Artifacts
+
+- Training:
+  - Local: run `make train` to generate artifacts into `models/`
+  - CI: training jobs can push artifacts to `S3_BUCKET` at `MODEL_S3_KEY`
+- Inference:
+  - On startup, the API attempts to load the local model from `models/`
+  - If not present (or if configured), it downloads the latest model from S3 using `S3_BUCKET` and `MODEL_S3_KEY`
+- Versioning:
+  - Include model version in responses (e.g., `model_version`) and log metadata for traceability
 
 ## Deployment
 
@@ -155,46 +169,46 @@ make run
 The project includes GitHub Actions for automated deployment to AWS ECS:
 
 1. Push to `main` branch
-2. GitHub Actions builds and pushes Docker images
+2. GitHub Actions builds and pushes Docker images to ECR
 3. Deploys to ECS cluster
 
-### Environment Variables
+### CI/CD Prerequisites
 
-For production, set the following environment variables:
+Configure the following GitHub Actions secrets (names may vary based on workflow):
 
-- `ENVIRONMENT=production`
-- `AWS_REGION=ap-south-1`
-- `S3_BUCKET=housing-data-artifacts`
-- `API_KEY=<secure-api-key>`
-- `LOG_LEVEL=INFO`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `ECR_REGISTRY` (or derive via AWS account/region)
+- `ECS_CLUSTER`
+- `ECS_SERVICE`
+- `API_KEY` (if injected via environment)
+- Any additional parameters required by the workflow (e.g., `IMAGE_TAG`, `S3_BUCKET`, `MODEL_S3_KEY`)
+
+Ensure the IAM role used by GitHub Actions has permissions for:
+- ECR: push/pull
+- ECS: describe services, update services
+- S3: read/write artifacts (if training/inference pull from S3)
 
 ## Monitoring
 
-- Structured logging with JSON output in production
-- Health check endpoints for monitoring
+- Structured logging with JSON output in production, including fields like `timestamp`, `level`, `message`, `request_id`, `model_version`
+- Health check endpoints:
+  - `/` liveness: service process is running
+  - `/health` readiness: model loaded, S3 connectivity, version info, and dependency status
 - Error tracking with detailed exception information
 
 ## Security
 
 - API key authentication
 - Input validation and sanitization
-- Secure configuration management
-- No hardcoded secrets
+- Secure configuration management (no hardcoded secrets)
+- Key rotation via environment secret sources and redeploy
+- Principle of least privilege for IAM roles
 
 ## Documentation
 
-- **[Architecture Guide](docs/architecture.md)** - System design and components
-- **[API Documentation](docs/api.md)** - Complete API reference
-- **[Deployment Guide](docs/deployment.md)** - Production deployment instructions
-- **[Development Guide](docs/development.md)** - Development workflow and standards
-
-## Contributing
-
-1. Follow the existing code style
-2. Add tests for new features
-3. Update documentation
-4. Use `make format` and `make lint` before committing
-
-## License
-
-[Add your license here]
+- [Architecture Guide](docs/architecture.md) — System design and components
+- [API Documentation](docs/api.md) — Complete API reference
+- [Deployment Guide](docs/deployment.md) — Production deployment instructions
+- [Development Guide](docs/development.md) — Development workflow and standards
